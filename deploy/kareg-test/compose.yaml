@@ -1,0 +1,39 @@
+name: kareg-silo-test
+
+services:
+  silo:
+    image: ${SILO_IMAGE:?Set SILO_IMAGE to an immutable release tag or digest}
+    container_name: kareg-silo-test
+    command:
+      - server
+      - /data
+      - --address
+      - :9000
+      - --console-address
+      - :9001
+    environment:
+      MINIO_ROOT_USER: ${SILO_ROOT_USER:?Set SILO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${SILO_ROOT_PASSWORD:?Set SILO_ROOT_PASSWORD}
+    ports:
+      - name: s3-api
+        target: 9000
+        published: ${SILO_API_PORT:-19000}
+        host_ip: 127.0.0.1
+        protocol: tcp
+      - name: console
+        target: 9001
+        published: ${SILO_CONSOLE_PORT:-19001}
+        host_ip: 127.0.0.1
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: ${SILO_DATA_PATH:?Set SILO_DATA_PATH to a directory on drive E}
+        target: /data
+    healthcheck:
+      test: ["CMD", "/usr/bin/mcli", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+    stop_grace_period: 30s

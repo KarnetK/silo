@@ -59,6 +59,9 @@ xl-meta
 
 dist/
 
+# Local deployment credentials and overrides.
+deploy/kareg-test/.env
+
 
 .claude/
 .codex/

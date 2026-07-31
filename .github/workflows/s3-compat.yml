@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/s3-compat.yml"
       - "buildscripts/kareg-s3-compat/**"
+      - "deploy/kareg-test/**"
       - "go.mod"
       - "go.sum"
   workflow_dispatch:
@@ -28,6 +29,16 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+
+      - name: Validate TEST deployment profile
+        env:
+          SILO_IMAGE: ghcr.io/karnetk/silo:RELEASE.2026-07-31T00-17-54Z
+          SILO_ROOT_USER: compose-validation
+          SILO_ROOT_PASSWORD: compose-validation-password
+          SILO_DATA_PATH: /tmp/kareg-silo-test
+          SILO_API_PORT: "19000"
+          SILO_CONSOLE_PORT: "19001"
+        run: docker compose -f deploy/kareg-test/compose.yaml config --quiet
 
       - name: Pull and start published image
         run: |

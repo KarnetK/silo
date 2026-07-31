@@ -34,5 +34,10 @@ Each deployment must pin an immutable release tag or image digest. The
 
 The maintenance checkout lives at `E:\Git\Silo`. Heavy build caches, temporary
 artifacts, and test data must remain on drive `E:`. Docker Desktop currently
-stores its VM disk on drive `C:`, so container publication is performed by
-GitHub Actions rather than by a local Docker build.
+stores its VM disk on drive `C:`. Image layers may remain there as reproducible
+cache, while persistent deployment data is bind-mounted from drive `E:`. Image
+publication remains in GitHub Actions rather than using local build storage.
+
+The isolated local deployment profile is in `deploy/kareg-test`. It uses ports
+19000 and 19001 so it does not interfere with the Portal MinIO container, and
+it requires an immutable release tag or digest through `SILO_IMAGE`.
