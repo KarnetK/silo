@@ -29,6 +29,10 @@ services:
       - type: bind
         source: ${SILO_DATA_PATH:?Set SILO_DATA_PATH to a directory on drive E}
         target: /data
+    networks:
+      default:
+        aliases:
+          - minio
     healthcheck:
       test: ["CMD", "/usr/bin/mcli", "ready", "local"]
       interval: 5s

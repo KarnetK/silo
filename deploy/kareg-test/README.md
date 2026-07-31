@@ -23,7 +23,10 @@ location is explicit and survives Docker cache cleanup.
    ```
 
    The script creates a random local password without printing it. Existing
-   `.env` files are retained unless `-Force` is specified.
+   `.env` files are retained unless `-Force` is specified. When an older file
+   lacks the Portal, Synapse, or backup compatibility keys, only those missing
+   deployment credentials are added; the existing Silo root pair is not
+   rotated.
 
 2. Keep `SILO_IMAGE` in `.env` pinned to an immutable release tag or image
    digest.
@@ -48,3 +51,11 @@ docker compose down
 `docker compose down` removes the container and network but leaves
 `E:\SiloTest\data` intact. Removing that directory is a separate destructive
 operation and is not part of the deployment workflow.
+
+## Portal compatibility
+
+The `.env` also contains generated local service-account pairs for Portal,
+Synapse, and read-only backup verification. Bucket names, IAM policies, and the
+isolation scenario remain owned by the Portal repository so the deployment
+cannot drift from that product contract. Run its local Silo verifier after this
+container is healthy.
