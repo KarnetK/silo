@@ -1,0 +1,70 @@
+name: S3 Compatibility
+
+on:
+  push:
+    branches:
+      - kareg/main
+    paths:
+      - ".github/workflows/s3-compat.yml"
+      - "buildscripts/kareg-s3-compat/**"
+      - "go.mod"
+      - "go.sum"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  s3-compat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Pull and start published image
+        run: |
+          set -euo pipefail
+          docker pull ghcr.io/karnetk/silo:latest
+          docker run -d --name silo-s3-compat \
+            -p 127.0.0.1:9000:9000 \
+            -e MINIO_ROOT_USER=smokeadmin \
+            -e MINIO_ROOT_PASSWORD=smoke-test-password-123456 \
+            ghcr.io/karnetk/silo:latest \
+            server /data --address :9000
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error \
+              http://127.0.0.1:9000/minio/health/live >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs silo-s3-compat
+          exit 1
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l buildscripts/kareg-s3-compat)"
+
+      - name: Run S3 compatibility suite
+        env:
+          S3_ENDPOINT: 127.0.0.1:9000
+          S3_ACCESS_KEY: smokeadmin
+          S3_SECRET_KEY: smoke-test-password-123456
+        run: go test -v ./buildscripts/kareg-s3-compat
+
+      - name: Show server logs on failure
+        if: failure()
+        run: docker logs silo-s3-compat
+
+      - name: Stop test server
+        if: always()
+        run: docker rm -f silo-s3-compat
