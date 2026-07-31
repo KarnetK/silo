@@ -2,6 +2,15 @@ name: Test Release Pipeline
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - kareg/main
+    paths:
+      - ".github/goreleaser.yml"
+      - "Dockerfile.goreleaser"
+      - "minio.service"
+      - ".github/workflows/release.yml"
+      - ".github/workflows/test-release.yml"
   pull_request:
     paths:
       - ".github/goreleaser.yml"
