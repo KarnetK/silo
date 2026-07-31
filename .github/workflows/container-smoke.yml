@@ -1,0 +1,51 @@
+name: Container Smoke
+
+on:
+  push:
+    branches:
+      - kareg/main
+    paths:
+      - ".github/workflows/container-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Pull published image
+        run: docker pull ghcr.io/karnetk/silo:latest
+
+      - name: Check server and client binaries
+        run: |
+          set -euo pipefail
+          docker run --rm --entrypoint /usr/bin/minio \
+            ghcr.io/karnetk/silo:latest --version
+          docker run --rm --entrypoint /usr/bin/mcli \
+            ghcr.io/karnetk/silo:latest --version
+
+      - name: Start server and verify health
+        run: |
+          set -euo pipefail
+          container_id="$(docker run -d \
+            -p 127.0.0.1:9000:9000 \
+            -e MINIO_ROOT_USER=smokeadmin \
+            -e MINIO_ROOT_PASSWORD=smoke-test-password-123456 \
+            ghcr.io/karnetk/silo:latest \
+            server /data --address :9000)"
+          trap 'docker rm -f "${container_id}" >/dev/null 2>&1 || true' EXIT
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error \
+              http://127.0.0.1:9000/minio/health/live >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs "${container_id}"
+          exit 1
